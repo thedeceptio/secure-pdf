@@ -9,65 +9,182 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
 
     <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text: #1e293b;
+            --text-light: #64748b;
+            --border: #e2e8f0;
+            --danger: #ef4444;
+        }
+
         body {
-            font-family: sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             display: flex;
             justify-content: center;
-            padding: 50px;
-            background: #f4f7f6;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 40px 20px;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
         }
 
         .card {
-            background: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            background: var(--card-bg);
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
             width: 100%;
-            max-width: 500px;
+            max-width: 600px;
+        }
+
+        header {
             text-align: center;
+            margin-bottom: 32px;
         }
 
         h2 {
-            color: #333;
+            margin: 0 0 8px 0;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text);
         }
 
-        input {
-            margin: 20px 0;
+        p {
+            margin: 0;
+            color: var(--text-light);
+            font-size: 0.95rem;
         }
 
-        button {
-            background: #007bff;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
+        .file-inputs-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .file-input-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: #fff;
+            transition: border-color 0.2s;
+        }
+
+        .file-input-row:focus-within {
+            border-color: var(--primary);
+        }
+
+        .file-input-row label {
+            flex: 1;
+            font-size: 0.9rem;
+            color: var(--text-light);
             cursor: pointer;
-            font-weight: bold;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
-        button:disabled {
-            background: #ccc;
-        }
-
-        #status {
-            margin-top: 20px;
-            color: #666;
-            font-size: 0.9em;
-        }
-
-        #downloadLink {
-            margin-top: 15px;
+        .file-input-row input[type="file"] {
             display: none;
         }
 
-        #downloadLink a {
-            color: #007bff;
-            text-decoration: none;
-            font-weight: bold;
+        .btn-select {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
         }
 
-        #downloadLink a:hover {
-            text-decoration: underline;
+        .btn-select:hover {
+            background: var(--border);
+        }
+
+        .btn-remove {
+            background: none;
+            border: none;
+            color: var(--danger);
+            cursor: pointer;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0.6;
+            transition: opacity 0.2s;
+        }
+
+        .btn-remove:hover {
+            opacity: 1;
+        }
+
+        .actions {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            width: 100%;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+        }
+
+        .btn-primary:disabled {
+            background: var(--text-light);
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        #status {
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--text-light);
+            min-height: 1.2em;
+        }
+
+        #downloadContainer {
+            margin-top: 24px;
+            padding: 16px;
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 8px;
+            display: none;
+            text-align: center;
+        }
+
+        #downloadContainer a {
+            color: #166534;
+            text-decoration: none;
+            font-weight: 700;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        #downloadContainer .file-info {
+            font-size: 0.8rem;
+            color: #166534;
+            opacity: 0.8;
         }
     </style>
 </head>
@@ -75,29 +192,94 @@
 <body>
 
     <div class="card">
-        <h2>PDF Image-Flattener</h2>
-        <p>Merge multiple PDFs into one <b>non-copyable</b> (image-based) PDF.</p>
+        <header>
+            <h2>Secure PDF Flattener</h2>
+            <p>Convert PDFs to image-only for maximum security</p>
+        </header>
 
-        <input type="file" id="fileInput" multiple accept="application/pdf">
-        <br>
-        <button id="processBtn">Merge & Flatten PDF</button>
+        <div id="fileInputs" class="file-inputs-container">
+            <!-- Dynamic inputs will be added here -->
+        </div>
 
-        <div id="status"></div>
-        <div id="downloadLink"></div>
+        <div class="actions">
+            <button id="processBtn" class="btn-primary">Merge & Flatten PDF</button>
+            <div id="status"></div>
+        </div>
+
+        <div id="downloadContainer">
+            <a id="downloadLink" href="#">Download secured-file.pdf</a>
+            <span id="fileSize" class="file-info"></span>
+        </div>
     </div>
 
     <script>
         const { PDFDocument } = PDFLib;
-
-        // Initialize PDF.js worker
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
 
-        const fileInput = document.getElementById('fileInput');
+        const fileInputsContainer = document.getElementById('fileInputs');
         const processBtn = document.getElementById('processBtn');
         const status = document.getElementById('status');
+        const downloadContainer = document.getElementById('downloadContainer');
         const downloadLink = document.getElementById('downloadLink');
+        const fileSizeSpan = document.getElementById('fileSize');
 
-        // Helper function to convert data URL to Uint8Array
+        let fileRows = [];
+
+        function createFileInputRow(index) {
+            const row = document.createElement('div');
+            row.className = 'file-input-row';
+            row.innerHTML = `
+                <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-light); width: 50px;">FILE ${index + 1}</span>
+                <label for="file-${index}">Select a PDF...</label>
+                <input type="file" id="file-${index}" accept="application/pdf">
+                <button class="btn-select" onclick="document.getElementById('file-${index}').click()">Browse</button>
+                ${index >= 2 ? `<button class="btn-remove" title="Remove">&times;</button>` : '<div style="width: 24px"></div>'}
+            `;
+
+            const input = row.querySelector('input');
+            const label = row.querySelector('label');
+            const removeBtn = row.querySelector('.btn-remove');
+
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    label.innerText = file.name;
+                    label.style.color = 'var(--text)';
+                    checkAndAddRow();
+                }
+            };
+
+            if (removeBtn) {
+                removeBtn.onclick = () => {
+                    row.remove();
+                    fileRows = fileRows.filter(r => r.row !== row);
+                    updateRowNumbers();
+                };
+            }
+
+            const rowData = { row, input, label, index };
+            fileRows.push(rowData);
+            fileInputsContainer.appendChild(row);
+        }
+
+        function updateRowNumbers() {
+            fileRows.forEach((rd, i) => {
+                rd.row.querySelector('span').innerText = `FILE ${i + 1}`;
+                // Update internal index if needed, but not critical for current logic
+            });
+        }
+
+        function checkAndAddRow() {
+            const allFilled = fileRows.every(rd => rd.input.files.length > 0);
+            if (allFilled) {
+                createFileInputRow(fileRows.length);
+            }
+        }
+
+        // Initialize with 2 rows
+        createFileInputRow(0);
+        createFileInputRow(1);
+
         function dataURLToUint8Array(dataURL) {
             const base64 = dataURL.split(',')[1];
             const binary = atob(base64);
@@ -109,36 +291,33 @@
         }
 
         processBtn.onclick = async () => {
-            const files = Array.from(fileInput.files);
+            const files = fileRows
+                .map(rd => rd.input.files[0])
+                .filter(file => !!file);
+
             if (files.length === 0) return alert("Please select at least one PDF file.");
 
             processBtn.disabled = true;
-            downloadLink.style.display = 'none';
-            status.innerText = "Processing PDFs...";
+            downloadContainer.style.display = 'none';
+            status.innerText = "Initializing security process...";
 
             try {
-                // Create a new PDF document that will contain only images
                 const flattenedPdf = await PDFDocument.create();
 
-                // Process each PDF file
                 for (let fileIdx = 0; fileIdx < files.length; fileIdx++) {
                     const file = files[fileIdx];
                     status.innerText = `Processing file ${fileIdx + 1} of ${files.length}...`;
 
                     const pdfBytes = await file.arrayBuffer();
-
-                    // Load PDF with pdf.js to render pages
                     const loadingTask = pdfjsLib.getDocument({ data: pdfBytes });
                     const pdfDoc = await loadingTask.promise;
 
-                    // Convert each page to an image and add to flattened PDF
                     for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
-                        status.innerText = `Flattening page ${pageNum} of ${pdfDoc.numPages} (file ${fileIdx + 1}/${files.length})...`;
+                        status.innerText = `Flattening page ${pageNum}/${pdfDoc.numPages} (Doc ${fileIdx + 1}/${files.length})`;
 
                         const page = await pdfDoc.getPage(pageNum);
-                        const viewport = page.getViewport({ scale: 2.5 }); // Higher scale for better quality
+                        const viewport = page.getViewport({ scale: 2.0 }); // Good balance of quality/size
 
-                        // Create canvas and render page
                         const canvas = document.createElement('canvas');
                         const context = canvas.getContext('2d');
                         canvas.height = viewport.height;
@@ -146,19 +325,11 @@
 
                         await page.render({ canvasContext: context, viewport: viewport }).promise;
 
-                        // Convert canvas to PNG (better quality than JPEG for text)
-                        const imgData = canvas.toDataURL('image/png');
-
-                        // Convert data URL to Uint8Array
+                        const imgData = canvas.toDataURL('image/jpeg', 0.85); // JPEG slightly smaller for storage
                         const imageBytes = dataURLToUint8Array(imgData);
+                        const image = await flattenedPdf.embedJp2s ? await flattenedPdf.embedJpg(imageBytes) : await flattenedPdf.embedJpg(imageBytes);
 
-                        // Embed image in PDF using pdf-lib (this ensures no text layers)
-                        const image = await flattenedPdf.embedPng(imageBytes);
-
-                        // Create a new page with the exact dimensions of the rendered page
                         const pdfPage = flattenedPdf.addPage([viewport.width, viewport.height]);
-
-                        // Draw the image to fill the entire page (no text, just image)
                         pdfPage.drawImage(image, {
                             x: 0,
                             y: 0,
@@ -168,34 +339,33 @@
                     }
                 }
 
-                // Save the flattened PDF (contains only images, no text layers)
-                const pdfBytes = await flattenedPdf.save();
-                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                const finalPdfBytes = await flattenedPdf.save();
+                const blob = new Blob([finalPdfBytes], { type: 'application/pdf' });
                 const url = URL.createObjectURL(blob);
-                const fileSize = (blob.size / 1024 / 1024).toFixed(2);
+                const sizeMB = (blob.size / 1024 / 1024).toFixed(2);
+
+                downloadLink.href = url;
+                downloadLink.download = 'secured-file.pdf';
+                fileSizeSpan.innerText = `${sizeMB} MB`;
+                downloadContainer.style.display = 'block';
 
                 // Auto-download
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = 'merged_and_flattened.pdf';
+                a.download = 'secured-file.pdf';
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
 
-                // Show download link
-                downloadLink.style.display = 'block';
-                downloadLink.innerHTML = `<a href="${url}" download="merged_and_flattened.pdf">Download merged_and_flattened.pdf</a> (${fileSize} MB)`;
-
-                status.innerText = "Success! PDF created with image-only content (text is not selectable).";
+                status.innerText = "Success! Secure PDF generated.";
             } catch (err) {
                 console.error(err);
-                status.innerText = "Error processing PDFs. Check console.";
+                status.innerText = "An error occurred during processing.";
             } finally {
                 processBtn.disabled = false;
             }
         };
     </script>
-
 </body>
 
 </html>
