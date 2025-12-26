@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure PDF Merger & Flattener</title>
+    <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+
+    <style>
+        body {
+            font-family: sans-serif;
+            display: flex;
+            justify-content: center;
+            padding: 50px;
+            background: #f4f7f6;
+        }
+
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+        }
+
+        h2 {
+            color: #333;
+        }
+
+        input {
+            margin: 20px 0;
+        }
+
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        button:disabled {
+            background: #ccc;
+        }
+
+        #status {
+            margin-top: 20px;
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        #downloadLink {
+            margin-top: 15px;
+            display: none;
+        }
+
+        #downloadLink a {
+            color: #007bff;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        #downloadLink a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="card">
+        <h2>PDF Image-Flattener</h2>
+        <p>Merge multiple PDFs into one <b>non-copyable</b> (image-based) PDF.</p>
+
+        <input type="file" id="fileInput" multiple accept="application/pdf">
+        <br>
+        <button id="processBtn">Merge & Flatten PDF</button>
+
+        <div id="status"></div>
+        <div id="downloadLink"></div>
+    </div>
+
+    <script>
+        const { PDFDocument } = PDFLib;
+
+        // Initialize PDF.js worker
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+
+        const fileInput = document.getElementById('fileInput');
+        const processBtn = document.getElementById('processBtn');
+        const status = document.getElementById('status');
+        const downloadLink = document.getElementById('downloadLink');
+
+        // Helper function to convert data URL to Uint8Array
+        function dataURLToUint8Array(dataURL) {
+            const base64 = dataURL.split(',')[1];
+            const binary = atob(base64);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) {
+                bytes[i] = binary.charCodeAt(i);
+            }
+            return bytes;
+        }
+
+        processBtn.onclick = async () => {
+            const files = Array.from(fileInput.files);
+            if (files.length === 0) return alert("Please select at least one PDF file.");
+
+            processBtn.disabled = true;
+            downloadLink.style.display = 'none';
+            status.innerText = "Processing PDFs...";
+
+            try {
+                // Create a new PDF document that will contain only images
+                const flattenedPdf = await PDFDocument.create();
+
+                // Process each PDF file
+                for (let fileIdx = 0; fileIdx < files.length; fileIdx++) {
+                    const file = files[fileIdx];
+                    status.innerText = `Processing file ${fileIdx + 1} of ${files.length}...`;
+
+                    const pdfBytes = await file.arrayBuffer();
+
+                    // Load PDF with pdf.js to render pages
+                    const loadingTask = pdfjsLib.getDocument({ data: pdfBytes });
+                    const pdfDoc = await loadingTask.promise;
+
+                    // Convert each page to an image and add to flattened PDF
+                    for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
+                        status.innerText = `Flattening page ${pageNum} of ${pdfDoc.numPages} (file ${fileIdx + 1}/${files.length})...`;
+
+                        const page = await pdfDoc.getPage(pageNum);
+                        const viewport = page.getViewport({ scale: 2.5 }); // Higher scale for better quality
+
+                        // Create canvas and render page
+                        const canvas = document.createElement('canvas');
+                        const context = canvas.getContext('2d');
+                        canvas.height = viewport.height;
+                        canvas.width = viewport.width;
+
+                        await page.render({ canvasContext: context, viewport: viewport }).promise;
+
+                        // Convert canvas to PNG (better quality than JPEG for text)
+                        const imgData = canvas.toDataURL('image/png');
+
+                        // Convert data URL to Uint8Array
+                        const imageBytes = dataURLToUint8Array(imgData);
+
+                        // Embed image in PDF using pdf-lib (this ensures no text layers)
+                        const image = await flattenedPdf.embedPng(imageBytes);
+
+                        // Create a new page with the exact dimensions of the rendered page
+                        const pdfPage = flattenedPdf.addPage([viewport.width, viewport.height]);
+
+                        // Draw the image to fill the entire page (no text, just image)
+                        pdfPage.drawImage(image, {
+                            x: 0,
+                            y: 0,
+                            width: viewport.width,
+                            height: viewport.height,
+                        });
+                    }
+                }
+
+                // Save the flattened PDF (contains only images, no text layers)
+                const pdfBytes = await flattenedPdf.save();
+                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                const url = URL.createObjectURL(blob);
+                const fileSize = (blob.size / 1024 / 1024).toFixed(2);
+
+                // Auto-download
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'merged_and_flattened.pdf';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+
+                // Show download link
+                downloadLink.style.display = 'block';
+                downloadLink.innerHTML = `<a href="${url}" download="merged_and_flattened.pdf">Download merged_and_flattened.pdf</a> (${fileSize} MB)`;
+
+                status.innerText = "Success! PDF created with image-only content (text is not selectable).";
+            } catch (err) {
+                console.error(err);
+                status.innerText = "Error processing PDFs. Check console.";
+            } finally {
+                processBtn.disabled = false;
+            }
+        };
+    </script>
+
+</body>
+
+</html>
